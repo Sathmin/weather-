@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Forecast 24×7</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      transition: background 1s ease;
+    }
+
+    header {
+      background: #80e0ff;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #333;
+    }
+
+    main {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .search-container {
+      margin: 20px;
+    }
+
+    #city-input {
+      padding: 10px;
+      font-size: 1rem;
+      width: 300px;
+    }
+
+    #city-suggestions {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #city-suggestions li {
+      padding: 5px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+    }
+
+    #city-suggestions li:hover {
+      background-color: #e0e0e0;
+    }
+
+    #weather-info {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 10px;
+      background-color: #333;
+      color: white;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-content">
+      <h1>Weather Forecast 24×7</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="search-container">
+      <input type="text" id="city-input" placeholder="Enter city name..." onkeyup="searchCity()" />
+      <ul id="city-suggestions"></ul>
+      <button onclick="getWeather()">Get Weather</button>
+    </div>
+
+    <div id="weather-info">
+      <h2 id="city-name"></h2>
+      <p id="current-weather"></p>
+      <p id="date-time"></p>
+      <div id="full-forecast">
+        <p id="temperature"></p>
+        <p id="humidity"></p>
+        <p id="wind-speed"></p>
+        <p id="pressure"></p>
+        <p id="visibility"></p>
+        <p id="sunrise"></p>
+        <p id="sunset"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Powered by Sathmin OFC©</p>
+  </footer>
+
+  <script>
+    const apiKey = "5df2f5d11845c8ef5c7640dbc30eb1a5"; // Replace with your OpenWeatherMap API key
+
+    // Change background based on time of day (AM/PM)
+    const updateHeaderBackground = () => {
+      const currentTime = new Date();
+      const hours = currentTime.getHours();
+
+      if (hours >= 6 && hours < 18) {
+        document.body.style.background = "#FFF6E0"; // Light background (Day)
+        document.getElementById("header").style.background = "#80e0ff"; // Sun background
+      } else {
+        document.body.style.background = "#1c1c1c"; // Dark background (Night)
+        document.getElementById("header").style.background = "#2b2b2b"; // Moon background
+      }
+    };
+
+    updateHeaderBackground();
+
+    // Get weather for the city
+    const getWeather = () => {
+      const cityName = document.getElementById("city-input").value;
+
+      if (!cityName) {
+        alert("Please enter a city name.");
+        return;
+      }
+
+      axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}&units=metric`)
+        .then(response => {
+          const data = response.data;
+          const city = data.name;
+          const weather = data.weather[0].description;
+          const temp = data.main.temp;
+          const humidity = data.main.humidity;
+          const windSpeed = data.wind.speed;
+          const pressure = data.main.pressure;
+          const visibility = data.visibility / 1000; // Convert meters to kilometers
+          const sunrise = new Date(data.sys.sunrise * 1000).toLocaleTimeString();
+          const sunset = new Date(data.sys.sunset * 1000).toLocaleTimeString();
+          const dateTime = new Date().toLocaleString();
+
+          document.getElementById("city-name").innerText = city;
+          document.getElementById("current-weather").innerText = `${weather} - ${temp}°C`;
+          document.getElementById("date-time").innerText = `Local Time: ${dateTime}`;
+
+          // Full weather forecast
+          document.getElementById("temperature").innerText = `Temperature: ${temp}°C`;
+          document.getElementById("humidity").innerText = `Humidity: ${humidity}%`;
+          document.getElementById("wind-speed").innerText = `Wind Speed: ${windSpeed} m/s`;
+          document.getElementById("pressure").innerText = `Pressure: ${pressure} hPa`;
+          document.getElementById("visibility").innerText = `Visibility: ${visibility} km`;
+          document.getElementById("sunrise").innerText = `Sunrise: ${sunrise}`;
+          document.getElementById("sunset").innerText = `Sunset: ${sunset}`;
+        })
+        .catch(error => {
+          console.error(error);
+          alert("City not found. Please try again.");
+        });
+    };
+
+    // Search city function for suggestions
+    const searchCity = () => {
+      const query = document.getElementById("city-input").value;
+      const citySuggestions = document.getElementById("city-suggestions");
+
+      if (query.length > 2) {
+        axios.get(`https://api.openweathermap.org/data/2.5/find?q=${query}&appid=${apiKey}`)
+          .then(response => {
+            citySuggestions.innerHTML = "";
+            const cities = response.data.list;
+
+            cities.forEach(city => {
+              const li = document.createElement("li");
+              li.textContent = city.name;
+              li.onclick = () => {
+                document.getElementById("city-input").value = city.name;
+                getWeather();
+                citySuggestions.innerHTML = "";
+              };
+              citySuggestions.appendChild(li);
+            });
+          });
+      } else {
+        citySuggestions.innerHTML = "";
+      }
+    };
+
+    // Call to get weather based on current location when the page loads
+    window.onload = () => {
+      getWeather(); // Fetch weather for a default city on page load
+    };
+  </script>
+
+</body>
+</html>
